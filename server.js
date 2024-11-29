@@ -1,8 +1,7 @@
 const express = require('express');
 const bodyParser = require('body-parser');
-const fs = require('fs');
 const app = express();
-const port = process.env.PORT || 8080;
+const port = process.env.PORT || 3000;
 
 // Cấu hình middleware để đọc dữ liệu từ body
 app.use(bodyParser.urlencoded({ extended: true }));
@@ -13,7 +12,7 @@ app.use(express.static('public'));
 
 // Route chính để render form nhập liệu
 app.get('/', (req, res) => {
-  res.sendFile(__dirname + '/public/index.html');
+  res.sendFile(__dirname + '/public/index.html'); // Trả về trang index.html từ thư mục public
 });
 
 // Hàm lọc proxy và nhóm theo nhà mạng
@@ -29,7 +28,6 @@ function filterAndGroupProxies(data) {
       // Tách thông tin từ phần details
       const detailsParts = details.split(' - ');
 
-      // Kiểm tra nếu phần details đủ thông tin
       if (detailsParts.length >= 3) {
         const ip = detailsParts[0];
         const location = detailsParts[1];
@@ -55,7 +53,7 @@ app.post('/filter-proxy', (req, res) => {
   const proxyList = req.body.proxyList.trim().split('\n'); // Tách các dòng proxy từ dữ liệu nhận được
   const groupedProxies = filterAndGroupProxies(proxyList); // Lọc và nhóm proxies
 
-  // Tạo file TXT từ dữ liệu đã nhóm
+  // Tạo nội dung file văn bản từ dữ liệu đã nhóm
   let output = '';
   for (const group in groupedProxies) {
     output += `${group}:\n`;
@@ -65,17 +63,13 @@ app.post('/filter-proxy', (req, res) => {
     output += '\n'; // Thêm một dòng trống sau mỗi nhóm
   }
 
-  const fileName = 'filtered_proxies.txt'; // Tên file đầu ra
-  fs.writeFileSync(fileName, output); // Ghi dữ liệu vào file
+  // Sử dụng buffer để tạo file và trả về cho người dùng
+  const buffer = Buffer.from(output, 'utf-8');
 
-  // Trả về file cho người dùng tải về
-  res.download(fileName, (err) => {
-    if (err) {
-      console.log('Lỗi khi tải file:', err);
-    }
-    // Xóa file sau khi tải xong
-    fs.unlinkSync(fileName);
-  });
+  // Đặt headers để tải file về với tên "filtered_proxies.txt"
+  res.setHeader('Content-Type', 'text/plain');
+  res.setHeader('Content-Disposition', 'attachment; filename=filtered_proxies.txt');
+  res.send(buffer); // Gửi file cho người dùng tải về
 });
 
 // Khởi động server
