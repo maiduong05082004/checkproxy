@@ -20,30 +20,29 @@
         <button type="submit">Lọc Proxy</button>
     </form>
 
-    <h2>Kết quả:</h2>
-    <pre id="result"></pre>
-
     <script>
         document.getElementById('proxyForm').addEventListener('submit', function(event) {
-            event.preventDefault();
+            event.preventDefault(); // Ngăn không cho form reload trang
 
-            const proxyList = document.getElementById('proxyList').value.trim();
+            const proxyList = document.getElementById('proxyList').value.trim(); // Lấy dữ liệu từ textarea
 
+            // Gửi yêu cầu POST tới server
             fetch('/filter-proxy', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ proxyList: proxyList })
+                body: JSON.stringify({ proxyList: proxyList }) // Dữ liệu gửi lên server
             })
-            .then(response => response.json())
-            .then(data => {
-                // Hiển thị kết quả nhóm proxy
-                document.getElementById('result').textContent = JSON.stringify(data, null, 2);
+            .then(response => response.blob()) // Chuyển đổi response thành blob
+            .then(blob => {
+                // Tạo một link ẩn để tải file
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob); // Tạo URL từ blob
+                link.download = 'filtered_proxies.txt'; // Đặt tên file
+                link.click(); // Bắt đầu tải file
             })
-            .catch(error => {
-                console.error('Lỗi:', error);
-            });
+            .catch(error => console.error('Error:', error)); // In ra lỗi nếu có
         });
     </script>
 
