@@ -2,8 +2,9 @@ const express = require('express');
 const bodyParser = require('body-parser');
 const fs = require('fs');
 const app = express();
+const port = process.env.PORT || 3000; // Đảm bảo ứng dụng chạy trên cổng phù hợp với Vercel hoặc local
 
-// Sử dụng body-parser để đọc dữ liệu form
+// Cấu hình middleware để đọc dữ liệu từ body
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 
@@ -12,7 +13,7 @@ app.use(express.static('public'));
 
 // Route chính để render form nhập liệu
 app.get('/', (req, res) => {
-  res.sendFile(__dirname + '/public/index.html');
+  res.sendFile(__dirname + '/public/index.html'); // Trả về trang index.html từ thư mục public
 });
 
 // Hàm lọc proxy và nhóm theo nhà mạng
@@ -29,26 +30,15 @@ function filterAndGroupProxies(data) {
       // Tách thông tin từ phần details
       const detailsParts = details.split(' - ');
 
-      if (detailsParts.length >= 3) {
-        const ip = detailsParts[0]; // 14.190.208.75
-        const location = detailsParts[1]; // Việt Trì
-        const networkInfo = detailsParts[2]; // AS45899 VNPT Corp
+      if (detailsParts.length > 1) {
+        const city = detailsParts[1]; // Thành phố
+        const isp = detailsParts[0]; // Nhà cung cấp dịch vụ mạng
 
-        // Tách thông tin nhà mạng và mã AS
-        const [network, provider] = networkInfo.split(' '); // VNPT, FPT, v.v.
-
-        // Nhóm theo địa phương và nhà mạng
-        const groupKey = `${location} - ${provider}`;
-
-        // Nếu nhóm chưa có, tạo mới
-        if (!grouped[groupKey]) {
-          grouped[groupKey] = [];
+        if (!grouped[isp]) {
+          grouped[isp] = [];
         }
 
-        // Thêm proxy vào nhóm tương ứng
-        grouped[groupKey].push(`${proxy} => ${ip}`);
-      } else {
-        console.log(`Dòng không hợp lệ: ${line}`);
+        grouped[isp].push({ proxy, city });
       }
     }
   });
@@ -56,37 +46,19 @@ function filterAndGroupProxies(data) {
   return grouped;
 }
 
-// Route xử lý dữ liệu khi người dùng submit form
+// Route để nhận dữ liệu từ form và lọc proxy
 app.post('/filter-proxy', (req, res) => {
-  const proxyList = req.body.proxyList.trim().split('\n');
-  const groupedProxies = filterAndGroupProxies(proxyList);
-
-  // Tạo file TXT từ dữ liệu đã nhóm
-  let output = '';
-  for (const group in groupedProxies) {
-    output += `${group}:\n`;
-    groupedProxies[group].forEach(proxy => {
-      output += `${proxy}\n`;
-    });
-    output += '\n';
+  const proxyList = req.body.proxyList; // Lấy danh sách proxy từ request
+  if (proxyList) {
+    const proxyLines = proxyList.split('\n'); // Chia tách thành các dòng
+    const groupedProxies = filterAndGroupProxies(proxyLines);
+    res.json(groupedProxies); // Trả về kết quả đã nhóm
+  } else {
+    res.status(400).send('No proxy list provided');
   }
-
-  // Ghi dữ liệu ra file
-  const fileName = 'filtered_proxies.txt';
-  fs.writeFileSync(fileName, output);
-
-  // Trả về file cho người dùng tải về
-  res.download(fileName, (err) => {
-    if (err) {
-      console.log('Lỗi khi tải file:', err);
-    }
-    // Xóa file sau khi tải xong
-    fs.unlinkSync(fileName);
-  });
 });
 
 // Khởi động server
-const port = 3000;
 app.listen(port, () => {
-  console.log(`Server đang chạy tại http://localhost:${port}`);
+  console.log(`Server is running on port ${port}`);
 });
