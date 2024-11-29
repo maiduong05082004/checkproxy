@@ -20,6 +20,9 @@
         <button type="submit">Lọc Proxy</button>
     </form>
 
+    <h2>Kết quả:</h2>
+    <pre id="result"></pre>
+
     <script>
         document.getElementById('proxyForm').addEventListener('submit', function(event) {
             event.preventDefault();
@@ -29,18 +32,18 @@
             fetch('/filter-proxy', {
                 method: 'POST',
                 headers: {
-                    'Content-Type': 'application/json',
+                    'Content-Type': 'application/json'
                 },
-                body: JSON.stringify({ proxyList })
+                body: JSON.stringify({ proxyList: proxyList })
             })
-            .then(response => response.blob())
-            .then(blob => {
-                const link = document.createElement('a');
-                link.href = URL.createObjectURL(blob);
-                link.download = 'filtered_proxies.txt';
-                link.click();
+            .then(response => response.json())
+            .then(data => {
+                // Hiển thị kết quả nhóm proxy
+                document.getElementById('result').textContent = JSON.stringify(data, null, 2);
             })
-            .catch(error => console.error('Error:', error));
+            .catch(error => {
+                console.error('Lỗi:', error);
+            });
         });
     </script>
 
