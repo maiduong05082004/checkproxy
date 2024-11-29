@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lọc Proxy</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        textarea { width: 100%; height: 200px; }
+        button { padding: 10px 20px; font-size: 16px; margin-top: 10px; }
+    </style>
+</head>
+<body>
+
+    <h1>Lọc Proxy</h1>
+    <p>Nhập danh sách proxy vào ô bên dưới, mỗi proxy một dòng:</p>
+    
+    <form id="proxyForm">
+        <textarea id="proxyList" placeholder="Nhập danh sách proxy ở đây..."></textarea><br><br>
+        <button type="submit">Lọc Proxy</button>
+    </form>
+
+    <script>
+        document.getElementById('proxyForm').addEventListener('submit', function(event) {
+            event.preventDefault();
+
+            const proxyList = document.getElementById('proxyList').value.trim();
+
+            fetch('/filter-proxy', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ proxyList })
+            })
+            .then(response => response.blob())
+            .then(blob => {
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = 'filtered_proxies.txt';
+                link.click();
+            })
+            .catch(error => console.error('Error:', error));
+        });
+    </script>
+
+</body>
+</html>
